@@ -1,0 +1,13 @@
+name: CustomJoinLeave
+version: '${project.version}'
+main: de.shinjinjin.customjoinleave.CustomJoinLeave
+api-version: '1.21'
+commands:
+  customjoinleave:
+    description: Main command for CustomJoinLeave plugin
+    usage: /<command> <subcommand>
+    aliases: [cjl]  # Optional: Alias für den Hauptbefehl
+    subcommands:
+      reload:
+        description: Reloads the plugin configuration
+        usage: /<command> reload

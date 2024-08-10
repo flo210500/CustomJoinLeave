@@ -1,0 +1,16 @@
+default:
+  join: "%prefix%%player% hat den Server betreten."
+  leave: "%prefix%%player% hat den Server verlassen."
+
+groups:
+  admin:
+    join: "%prefix%%player% hat den Server Betreten! Benehmt euch anständig!"
+    leave: "%prefix%%player% hat den Server verlassen. Ihr Könnt euch wieder auslassen!"
+
+  moderator:
+    join: "%prefix%%player% ist jetzt online!"
+    leave: "%prefix%%player% hat den Server verlassen."
+
+  vip:
+    join: "%prefix%%player% ist jetzt online!"
+    leave: "%prefix%%player% hat den Server verlassen."
