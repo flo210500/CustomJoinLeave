@@ -2,6 +2,7 @@ name: CustomJoinLeave
 version: '${project.version}'
 main: de.shinjinjin.customjoinleave.CustomJoinLeave
 api-version: '1.21'
+depend: [LuckPerms]
 commands:
   customjoinleave:
     description: Main command for CustomJoinLeave plugin

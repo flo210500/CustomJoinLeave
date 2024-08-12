@@ -42,7 +42,8 @@ public class CustomJoinLeave extends JavaPlugin implements Listener, CommandExec
         // Debug-Nachricht
         getLogger().info("Join message before replacement: " + joinMessage);
 
-        // Ersetze Platzhalter und wende Farben an
+        // Ersetze Platzhalter und wende Farben und Hex-Farbcodes an
+        joinMessage = translateHexColorCodes(joinMessage);
         joinMessage = ChatColor.translateAlternateColorCodes('&', joinMessage);
         joinMessage = joinMessage.replace("%player%", player.getName());
         joinMessage = joinMessage.replace("%prefix%", prefix);
@@ -65,7 +66,8 @@ public class CustomJoinLeave extends JavaPlugin implements Listener, CommandExec
         // Debug-Nachricht
         getLogger().info("Quit message before replacement: " + quitMessage);
 
-        // Ersetze Platzhalter und wende Farben an
+        // Ersetze Platzhalter und wende Farben und Hex-Farbcodes an
+        quitMessage = translateHexColorCodes(quitMessage);
         quitMessage = ChatColor.translateAlternateColorCodes('&', quitMessage);
         quitMessage = quitMessage.replace("%player%", player.getName());
         quitMessage = quitMessage.replace("%prefix%", prefix);
@@ -92,11 +94,17 @@ public class CustomJoinLeave extends JavaPlugin implements Listener, CommandExec
         if (user != null) {
             String prefix = user.getCachedData().getMetaData().getPrefix();
             if (prefix != null) {
-                return ChatColor.translateAlternateColorCodes('&', prefix);
+                // Manuelles Ersetzen von & durch §
+                prefix = prefix.replace("&", "§");
+
+                // Hex-Farbcodes übersetzen
+                prefix = translateHexColorCodes(prefix);
+                return prefix;
             }
         }
         return ""; // Rückfall, falls kein Prefix vorhanden ist
     }
+
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
@@ -121,5 +129,31 @@ public class CustomJoinLeave extends JavaPlugin implements Listener, CommandExec
             }
         }
         return false;
+    }
+
+    // Methode zur Übersetzung von Hex-Farbcodes
+    private String translateHexColorCodes(String message) {
+        StringBuilder builder = new StringBuilder();
+        int length = message.length();
+
+        for (int i = 0; i < length; i++) {
+            char c = message.charAt(i);
+            if (c == '#' && i + 7 <= length) {
+                String hexCode = message.substring(i + 1, i + 7);
+                if (hexCode.matches("[A-Fa-f0-9]{6}")) {
+                    builder.append("§x");
+                    for (char hexChar : hexCode.toCharArray()) {
+                        builder.append('§').append(hexChar);
+                    }
+                    i += 6; // Überspringe die 6 Zeichen des Hexcodes
+                } else {
+                    builder.append(c); // Es ist kein gültiger Hex-Farbcode, füge das Zeichen normal hinzu
+                }
+            } else {
+                builder.append(c); // Kein Hex-Farbcode, füge das Zeichen normal hinzu
+            }
+        }
+
+        return builder.toString();
     }
 }
