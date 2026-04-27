@@ -1,159 +1,164 @@
 package de.shinjinjin.customjoinleave;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.luckperms.api.LuckPerms;
+import net.luckperms.api.LuckPermsProvider;
+import net.luckperms.api.model.user.User;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.event.EventHandler;
-import org.bukkit.entity.Player;
-import net.luckperms.api.LuckPerms;
-import net.luckperms.api.LuckPermsProvider;
-import net.luckperms.api.model.user.User;
-import org.bukkit.ChatColor;
 
-public class CustomJoinLeave extends JavaPlugin implements Listener, CommandExecutor {
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
+import java.util.logging.Level;
+
+public class CustomJoinLeave extends JavaPlugin implements Listener, CommandExecutor, TabCompleter {
+
+    private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
 
     @Override
     public void onEnable() {
-        getLogger().info("CustomJoinLeave Plugin enabled!");
-        getServer().getPluginManager().registerEvents(this, this);
         saveDefaultConfig();
-        this.getCommand("customjoinleave").setExecutor(this);
+        getServer().getPluginManager().registerEvents(this, this);
+        Objects.requireNonNull(getCommand("customjoinleave")).setExecutor(this);
+        Objects.requireNonNull(getCommand("customjoinleave")).setTabCompleter(this);
+        getLogger().info("CustomJoinLeave v" + getDescription().getVersion() + " enabled!");
     }
 
     @Override
     public void onDisable() {
-        getLogger().info("CustomJoinLeave Plugin disabled!");
+        getLogger().info("CustomJoinLeave disabled.");
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
-        String group = getPrimaryGroup(player);
-        String prefix = getPrefix(player);
-
-        FileConfiguration config = getConfig();
-        String joinMessage = config.getString("groups." + group + ".join", config.getString("default.join"));
-
-        // Debug-Nachricht
-        getLogger().info("Join message before replacement: " + joinMessage);
-
-        // Ersetze Platzhalter und wende Farben und Hex-Farbcodes an
-        joinMessage = translateHexColorCodes(joinMessage);
-        joinMessage = ChatColor.translateAlternateColorCodes('&', joinMessage);
-        joinMessage = joinMessage.replace("%player%", player.getName());
-        joinMessage = joinMessage.replace("%prefix%", prefix);
-
-        // Debug-Nachricht
-        getLogger().info("Join message after replacement: " + joinMessage);
-
-        event.setJoinMessage(joinMessage);
+        String message = resolveMessage(player, "join");
+        if (message == null || message.equalsIgnoreCase("none")) {
+            event.joinMessage(null);
+        } else {
+            event.joinMessage(formatMessage(message, player));
+        }
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        String group = getPrimaryGroup(player);
-        String prefix = getPrefix(player);
+        String message = resolveMessage(player, "leave");
+        if (message == null || message.equalsIgnoreCase("none")) {
+            event.quitMessage(null);
+        } else {
+            event.quitMessage(formatMessage(message, player));
+        }
+    }
 
+    private String resolveMessage(Player player, String type) {
         FileConfiguration config = getConfig();
-        String quitMessage = config.getString("groups." + group + ".leave", config.getString("default.leave"));
+        String group = getPrimaryGroup(player);
+        String msg = config.getString("groups." + group + "." + type);
+        if (msg == null) {
+            msg = config.getString("default." + type);
+        }
+        return msg;
+    }
 
-        // Debug-Nachricht
-        getLogger().info("Quit message before replacement: " + quitMessage);
+    private Component formatMessage(String message, Player player) {
+        String prefix = getPrefix(player);
+        message = message
+                .replace("%player%", player.getName())
+                .replace("%prefix%", prefix != null ? prefix : "");
+        message = legacyToMiniMessage(message);
+        return MINI_MESSAGE.deserialize(message);
+    }
 
-        // Ersetze Platzhalter und wende Farben und Hex-Farbcodes an
-        quitMessage = translateHexColorCodes(quitMessage);
-        quitMessage = ChatColor.translateAlternateColorCodes('&', quitMessage);
-        quitMessage = quitMessage.replace("%player%", player.getName());
-        quitMessage = quitMessage.replace("%prefix%", prefix);
-
-        // Debug-Nachricht
-        getLogger().info("Quit message after replacement: " + quitMessage);
-
-        event.setQuitMessage(quitMessage);
+    private String legacyToMiniMessage(String input) {
+        if (input == null) return "";
+        // Hex: &#RRGGBB oder #RRGGBB -> <#RRGGBB>
+        input = input.replaceAll("&(#[A-Fa-f0-9]{6})", "<$1>");
+        input = input.replaceAll("(?<!<)(#[A-Fa-f0-9]{6})(?![>A-Fa-f0-9])", "<$1>");
+        // Legacy &-Codes
+        input = input
+                .replace("&0", "<black>").replace("&1", "<dark_blue>")
+                .replace("&2", "<dark_green>").replace("&3", "<dark_aqua>")
+                .replace("&4", "<dark_red>").replace("&5", "<dark_purple>")
+                .replace("&6", "<gold>").replace("&7", "<gray>")
+                .replace("&8", "<dark_gray>").replace("&9", "<blue>")
+                .replace("&a", "<green>").replace("&b", "<aqua>")
+                .replace("&c", "<red>").replace("&d", "<light_purple>")
+                .replace("&e", "<yellow>").replace("&f", "<white>")
+                .replace("&A", "<green>").replace("&B", "<aqua>")
+                .replace("&C", "<red>").replace("&D", "<light_purple>")
+                .replace("&E", "<yellow>").replace("&F", "<white>")
+                .replace("&l", "<bold>").replace("&m", "<strikethrough>")
+                .replace("&n", "<underlined>").replace("&o", "<italic>")
+                .replace("&k", "<obfuscated>").replace("&r", "<reset>");
+        return input;
     }
 
     private String getPrimaryGroup(Player player) {
-        LuckPerms luckPerms = LuckPermsProvider.get();
-        User user = luckPerms.getUserManager().getUser(player.getUniqueId());
-        if (user != null) {
-            return user.getPrimaryGroup();
-        } else {
-            return "default";  // Fallback, falls der Spieler keine Gruppe hat
+        try {
+            LuckPerms luckPerms = LuckPermsProvider.get();
+            User user = luckPerms.getUserManager().getUser(player.getUniqueId());
+            return user != null ? user.getPrimaryGroup() : "default";
+        } catch (Exception e) {
+            getLogger().log(Level.WARNING, "Konnte LuckPerms-Gruppe fuer " + player.getName() + " nicht laden.", e);
+            return "default";
         }
     }
 
     private String getPrefix(Player player) {
-        LuckPerms luckPerms = LuckPermsProvider.get();
-        User user = luckPerms.getUserManager().getUser(player.getUniqueId());
-        if (user != null) {
-            String prefix = user.getCachedData().getMetaData().getPrefix();
-            if (prefix != null) {
-                // Manuelles Ersetzen von & durch §
-                prefix = prefix.replace("&", "§");
-
-                // Hex-Farbcodes übersetzen
-                prefix = translateHexColorCodes(prefix);
-                return prefix;
+        try {
+            LuckPerms luckPerms = LuckPermsProvider.get();
+            User user = luckPerms.getUserManager().getUser(player.getUniqueId());
+            if (user != null) {
+                return user.getCachedData().getMetaData().getPrefix();
             }
+        } catch (Exception e) {
+            getLogger().log(Level.WARNING, "Konnte LuckPerms-Prefix fuer " + player.getName() + " nicht laden.", e);
         }
-        return ""; // Rückfall, falls kein Prefix vorhanden ist
+        return null;
     }
-
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (command.getName().equalsIgnoreCase("customjoinleave")) { // Hauptbefehl
-            if (args.length > 0) {
-                if (args[0].equalsIgnoreCase("reload")) { // Unterbefehl
-                    if (sender.hasPermission("customjoinleave.reload")) {
-                        reloadConfig();
-                        sender.sendMessage(ChatColor.GREEN + "CustomJoinLeave configuration reloaded!");
-                        return true;
-                    } else {
-                        sender.sendMessage(ChatColor.RED + "You do not have permission to execute this command.");
-                        return true;
-                    }
-                } else {
-                    sender.sendMessage(ChatColor.RED + "Unknown subcommand. Usage: /customjoinleave reload");
+        if (!command.getName().equalsIgnoreCase("customjoinleave")) return false;
+
+        if (args.length == 0) {
+            sender.sendMessage(MINI_MESSAGE.deserialize("<red>Verwendung: /customjoinleave <reload>"));
+            return true;
+        }
+
+        switch (args[0].toLowerCase()) {
+            case "reload":
+                if (!sender.hasPermission("customjoinleave.reload")) {
+                    sender.sendMessage(MINI_MESSAGE.deserialize("<red>Du hast keine Berechtigung fuer diesen Befehl."));
                     return true;
                 }
-            } else {
-                sender.sendMessage(ChatColor.RED + "Usage: /customjoinleave <subcommand>");
-                return true;
-            }
+                reloadConfig();
+                sender.sendMessage(MINI_MESSAGE.deserialize("<green>CustomJoinLeave Konfiguration wurde neu geladen!"));
+                break;
+            default:
+                sender.sendMessage(MINI_MESSAGE.deserialize("<red>Unbekannter Unterbefehl. Verwendung: /customjoinleave reload"));
         }
-        return false;
+        return true;
     }
 
-    // Methode zur Übersetzung von Hex-Farbcodes
-    private String translateHexColorCodes(String message) {
-        StringBuilder builder = new StringBuilder();
-        int length = message.length();
-
-        for (int i = 0; i < length; i++) {
-            char c = message.charAt(i);
-            if (c == '#' && i + 7 <= length) {
-                String hexCode = message.substring(i + 1, i + 7);
-                if (hexCode.matches("[A-Fa-f0-9]{6}")) {
-                    builder.append("§x");
-                    for (char hexChar : hexCode.toCharArray()) {
-                        builder.append('§').append(hexChar);
-                    }
-                    i += 6; // Überspringe die 6 Zeichen des Hexcodes
-                } else {
-                    builder.append(c); // Es ist kein gültiger Hex-Farbcode, füge das Zeichen normal hinzu
-                }
-            } else {
-                builder.append(c); // Kein Hex-Farbcode, füge das Zeichen normal hinzu
-            }
+    @Override
+    public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
+        if (args.length == 1) {
+            return Arrays.asList("reload");
         }
-
-        return builder.toString();
+        return List.of();
     }
 }

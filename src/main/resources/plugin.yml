@@ -3,12 +3,20 @@ version: '${project.version}'
 main: de.shinjinjin.customjoinleave.CustomJoinLeave
 api-version: '1.21'
 depend: [LuckPerms]
+author: Shin_Jin_Jin
+description: Customizable join and leave messages with LuckPerms group support.
+
 commands:
   customjoinleave:
-    description: Main command for CustomJoinLeave plugin
+    description: Hauptbefehl fuer CustomJoinLeave
     usage: /<command> <subcommand>
-    aliases: [cjl]  # Optional: Alias für den Hauptbefehl
-    subcommands:
-      reload:
-        description: Reloads the plugin configuration
-        usage: /<command> reload
+    aliases: [cjl]
+    permission: customjoinleave.use
+
+permissions:
+  customjoinleave.reload:
+    description: Erlaubt das Neuladen der Konfiguration
+    default: op
+  customjoinleave.use:
+    description: Zugriff auf den Hauptbefehl
+    default: op

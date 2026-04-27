@@ -1,16 +1,21 @@
+# CustomJoinLeave Konfiguration
+# Platzhalter: %player% = Spielername, %prefix% = LuckPerms Prefix
+# Farben: MiniMessage (<red>, <gold>, <#FF5500>, ...) oder Legacy &-Codes (&c, &6, ...)
+# Nachricht deaktivieren: Wert auf "none" setzen
+
 default:
-  join: "%prefix%%player% hat den Server betreten."
-  leave: "%prefix%%player% hat den Server verlassen."
+  join: "<gray>%prefix%%player% <white>hat den Server betreten."
+  leave: "<gray>%prefix%%player% <white>hat den Server verlassen."
 
 groups:
   admin:
-    join: "%prefix%%player% hat den Server Betreten! Benehmt euch anständig!"
-    leave: "%prefix%%player% hat den Server verlassen. Ihr Könnt euch wieder auslassen!"
+    join: "<red>[ADMIN] <white>%prefix%%player% <yellow>hat den Server betreten! Benehmt euch!"
+    leave: "<red>[ADMIN] <white>%prefix%%player% <gray>hat den Server verlassen."
 
   moderator:
-    join: "%prefix%%player% ist jetzt online!"
-    leave: "%prefix%%player% hat den Server verlassen."
+    join: "<blue>[MOD] <white>%prefix%%player% <aqua>ist jetzt online!"
+    leave: "<blue>[MOD] <white>%prefix%%player% <gray>hat den Server verlassen."
 
   vip:
-    join: "%prefix%%player% ist jetzt online!"
-    leave: "%prefix%%player% hat den Server verlassen."
+    join: "<gold>[VIP] <white>%prefix%%player% <yellow>ist jetzt online!"
+    leave: "<gold>[VIP] <white>%prefix%%player% <gray>hat den Server verlassen."
